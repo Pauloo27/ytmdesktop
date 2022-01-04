@@ -16,6 +16,7 @@ if (store.get('titlebar-type', 'nice') !== 'nice') {
         .removeChild(document.getElementById('nice-titlebar').firstChild)
 
     document.getElementById('webview').style.height = '100vh'
+    document.getElementById('iframe').style.height = '100vh'
 } else {
     if (isMac()) {
         winElement.remove()
@@ -82,6 +83,7 @@ function checkUrlParams() {
     let title = params.get('title')
     let hide = params.get('hide')
     let trusted = params.get('trusted')
+    let script = params.get('script')
 
     if (trusted) {
         webview.classList.add('hide')
@@ -90,6 +92,16 @@ function checkUrlParams() {
     }
 
     if (page) webview.src = `../../${page}.html`
+
+    if (script) {
+        script = script.split(',')
+
+        script.forEach((src) => {
+            script_block = document.createElement('script')
+            script_block.src = `./${src}.js`
+            document.body.append(script_block)
+        })
+    }
 
     if (icon) {
         let elIcon = document.getElementById('icon')
