@@ -86,6 +86,18 @@ function mediaAddToPlaylist(mainWindow, index) {
     infoPlayerProvider.addToPlaylist(mainWindow.webContents, index)
 }
 
+function mediaSkipAd(mainWindow) {
+    infoPlayerProvider.skipAd(mainWindow.webContents)
+}
+
+function mediaStartplaylist(mainWindow, playlistName) {
+    infoPlayerProvider.startPlaylist(mainWindow.webContents, playlistName)
+}
+
+function mediaPlayURL(mainWindow, url) {
+    infoPlayerProvider.playURL(url)
+}
+
 function createThumbar(mainWindow, mediaInfo) {
     let isPaused = mediaInfo.player.isPaused
     let likeStatus = mediaInfo.player.likeStatus
@@ -246,6 +258,9 @@ exports.repeat = mediaRepeat
 exports.shuffle = mediaShuffle
 exports.addToLibrary = mediaAddToLibrary
 exports.addToPlaylist = mediaAddToPlaylist
+exports.skipAd = mediaSkipAd
+exports.startPlaylist = mediaStartplaylist
+exports.playURL = mediaPlayURL
 
 // For Windows
 exports.createThumbar = createThumbar

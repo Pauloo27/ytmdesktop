@@ -455,6 +455,7 @@ async function createWindow() {
         const duration = trackInfo.duration
         const cover = trackInfo.cover
         const nowPlaying = `${title} - ${author}`
+        const isAdPlaying = playerInfo.isSkippable
 
         if (title && author) {
             rainmeterNowPlaying.setActivity(getAll())
@@ -497,6 +498,18 @@ async function createWindow() {
                         )
                     }
                 }
+            }
+
+            /**
+             * skip ad when SkipAd button shows
+             */
+            if (settingsProvider.get('settings-AutoClick_SkipAd')) {
+                setTimeout(() => {
+                    if (isAdPlaying) {
+                        //console.log('trying to skip!')
+                        mediaControl.skipAd(view)
+                    }
+                }, 1000)
             }
 
             /**
@@ -1085,6 +1098,18 @@ async function createWindow() {
             case 'media-add-playlist':
                 mediaControl.addToPlaylist(view, value)
                 break
+
+            case 'media-skip-ad':
+                mediaControl.skipAd(view)
+                break
+
+            case 'media-start-playlist':
+                mediaControl.startPlaylist(view, value)
+                break
+
+            case 'media-play-url':
+                mediaControl.playURL(view, value)
+                break
         }
     })
 
@@ -1371,8 +1396,7 @@ async function createWindow() {
                 './src/pages/shared/window-buttons/window-buttons.html'
             ),
             {
-                search:
-                    'page=settings/sub/last-fm/last-fm-login&icon=music_note&hide=btn-minimize,btn-maximize&title=Last.FM Login',
+                search: 'page=settings/sub/last-fm/last-fm-login&icon=music_note&hide=btn-minimize,btn-maximize&title=Last.FM Login',
             }
         )
     }
@@ -1402,8 +1426,7 @@ async function createWindow() {
                 './src/pages/shared/window-buttons/window-buttons.html'
             ),
             {
-                search:
-                    'page=editor/editor&icon=color_lens&hide=btn-minimize,btn-maximize',
+                search: 'page=editor/editor&icon=color_lens&hide=btn-minimize,btn-maximize',
             }
         )
     }
@@ -1780,7 +1803,8 @@ async function createWindow() {
                 clipboardWatcher = ClipboardWatcher({
                     watchDelay: 1000,
                     onTextChange: (text) => {
-                        let regExp = /(https?:\/\/)(www.)?(music.youtube|youtube|youtu.be).*/
+                        let regExp =
+                            /(https?:\/\/)(www.)?(music.youtube|youtube|youtu.be).*/
                         let match = text.match(regExp)
                         if (match) {
                             let videoUrl = match[0]
@@ -1824,7 +1848,8 @@ async function createWindow() {
         if (videoUrl.includes('music.youtube'))
             await view.webContents.loadURL(videoUrl)
         else {
-            let regExpYoutube = /^.*(https?:\/\/)?(www.)?(music.youtube|youtube|youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=|\?v=)([^#&?]*).*/
+            let regExpYoutube =
+                /^.*(https?:\/\/)?(www.)?(music.youtube|youtube|youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=|\?v=)([^#&?]*).*/
             let match = videoUrl.match(regExpYoutube)
             await view.webContents.loadURL(
                 'https://music.youtube.com/watch?v=' + match[4]
@@ -2213,18 +2238,6 @@ powerMonitor.on('suspend', () => {
     }
 })
 
-if (!settingsProvider.get('settings-disable-analytics')) {
-    const analytics = require('./src/providers/analyticsProvider')
-    analytics.setEvent(
-        'main',
-        'start',
-        'v' + app.getVersion(),
-        app.getVersion()
-    )
-    analytics.setEvent('main', 'os', process.platform, process.platform)
-    analytics.setScreen('main')
-}
-
 // In this file you can include the rest of your app's specific main process
 // code. You can also put them in separate files and require them here.
 const mediaControl = require('./src/providers/mediaProvider')
@@ -2233,3 +2246,7 @@ const updater = require('./src/providers/updateProvider')
 const { getTrackInfo } = require('./src/providers/infoPlayerProvider')
 const { ipcRenderer } = require('electron/renderer')
 //const {UpdaterSignal} = require('electron-updater');
+
+module.exports = {
+    handleOpenUrl: handleOpenUrl,
+}

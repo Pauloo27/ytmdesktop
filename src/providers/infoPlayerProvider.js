@@ -1,4 +1,5 @@
 const settingsProvider = require('./settingsProvider')
+const { handleOpenUrl } = require('../../main')
 
 let webContents, initialized
 
@@ -24,6 +25,7 @@ const track = {
     id: '',
     isVideo: false,
     isAdvertisement: false,
+    isAdSkippable: false,
     inLibrary: false,
 }
 
@@ -72,6 +74,7 @@ function getPlayerInfo() {
     getSeekbarPosition(webContents)
     getLikeStatus(webContents)
     getRepeatType(webContents)
+    canSkipAd(webContents)
     return player
 }
 
@@ -437,6 +440,34 @@ function isAdvertisement(webContents) {
         .catch((_) => console.log('error isAdvertisement'))
 }
 
+function canSkipAd(webContents) {
+    webContents
+        .executeJavaScript(
+            `document.querySelector(".ytp-ad-preview-slot").style.display`
+        )
+        .then((isAdSkippable) => {
+            if (Boolean(isAdSkippable)) {
+                track.isAdSkippable = true
+            } else {
+                track.isAdSkippable = false
+            }
+        })
+        .catch((_) => {
+            track.isAdSkippable = false
+        })
+}
+
+function skipAd(webContents) {
+    if (track.isAdSkippable) {
+        webContents
+            .executeJavaScript(
+                `document.querySelector(".ytp-ad-skip-button").click()`
+            )
+            .then()
+            .catch((_) => console.log('error SkipAd'))
+    }
+}
+
 function setVolume(webContents, vol) {
     webContents
         .executeJavaScript(
@@ -448,6 +479,49 @@ function setVolume(webContents, vol) {
         )
         .then()
         .catch((_) => console.log('error changeVolume'))
+}
+
+function startPlaylist(webContents, playlistName) {
+    webContents
+        .executeJavaScript(
+            `
+            new Promise((resolve, reject) => {
+                try {
+                    if (document.querySelector(".iron-selected").tabId !== "FEmusic_liked") {
+                        document.querySelector("[tab-id='FEmusic_liked']").click()
+            
+                    }
+                } catch (err) {
+                      document.querySelector("[tab-id='FEmusic_liked']").click()
+                }
+                setTimeout( resolve, 5000)
+            })
+            .then(() => {
+                document.querySelectorAll("div>ytmusic-two-row-item-renderer").forEach((playlist) => {
+                    let innerSpanText = playlist.querySelector("div>span>yt-formatted-string>span:nth-child(3)");
+                    if (playlist.querySelector("a").href !== "#" && innerSpanText !== null && innerSpanText.innerText !== "0 songs"){
+                        if (playlist.querySelector("div>div>yt-formatted-string>a").innerText === "${playlistName}"){
+                            let startPlay = playlist.querySelector("a>ytmusic-item-thumbnail-overlay-renderer>div>ytmusic-play-button-renderer")
+                            if (startPlay.getAttribute("state") === "default") { startPlay.click() } // Check if User is already playing this Playlist if Not start it
+                        }
+                    }
+                })
+            })
+            `
+        )
+        .then()
+        .catch((_) => console.log('error Playlist ' + _))
+}
+
+function playURL(url) {
+    if (url.includes('watch?v=')) {
+        let video = url.split('watch?v=')
+        let baseurl = 'ytmd://play/'
+        if (video[0] == 'https://music.youtube.com/') {
+            console.log(baseurl + video[1])
+            handleOpenUrl(baseurl + video[1])
+        }
+    }
 }
 
 function setSeekbar(webContents, time) {
@@ -611,6 +685,7 @@ module.exports = {
     setVolume: setVolume,
     setSeekbar: setSeekbar,
     setQueueItem: setQueueItem,
+    skipAd: skipAd,
 
     updatePlaylistInfo: updatePlaylistInfo,
     updateQueueInfo: updateQueueInfo,
@@ -618,4 +693,6 @@ module.exports = {
 
     addToLibrary: addToLibrary,
     addToPlaylist: addToPlaylist,
+    startPlaylist: startPlaylist,
+    playURL: playURL,
 }
